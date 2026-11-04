@@ -53,9 +53,3 @@ The Maven Surefire test reports are generated under:
 target/surefire-reports/
 ```
 
-## Important notes
-
-- LinkedIn is a third-party production website. Its page structure, locators, search results and security controls may change.
-- LinkedIn may show CAPTCHA/security verification during login attempts. Do not attempt to bypass CAPTCHA. A CAPTCHA interruption means an invalid-password result may be inconclusive.
-- Keep personal information hidden in screenshots and screen recordings.
-- Do not commit credentials, browser profiles, or private account data to the repository.
