@@ -8,8 +8,8 @@ This project demonstrates how Selenium WebDriver can automate common user intera
 
 The automation covers:
 - Successful login using valid credentials.
-- Searching for a LinkedIn profile.
-- Selecting a search result and verifying profile navigation.
+- Searching LinkedIn for a job.
+- Opening the first job result and verifying its job page.
 - Testing login behaviour with invalid credentials.
 - Automatically capturing screenshots during test execution.
 
@@ -57,8 +57,8 @@ LinkedInAutomation/
 | Test Case | Description | Expected Result |
 |---|---|---|
 | TC-01 | Login with valid credentials | User successfully logs in |
-| TC-02 | Search for a LinkedIn profile | Relevant search results are displayed |
-| TC-03 | Select the first search result | The selected profile page opens |
+| TC-02 | Search for a job | Relevant job results are displayed |
+| TC-03 | Select the first job result | The selected job page opens |
 | TC-04 | Login with invalid credentials | An invalid-credentials message is displayed |
 
 ## Prerequisites
@@ -111,17 +111,22 @@ Maven will download the required dependencies, compile the project, and execute 
 
 ## Test Results
 
-The latest successful full test execution produced the following results:
+Run the tests with valid `LINKEDIN_USERNAME` and `LINKEDIN_PASSWORD` environment variables. The tests use LinkedIn's live website, so results can vary with page changes and security checks such as CAPTCHA.
 
-```text
-Tests run: 3
-Failures: 0
-Errors: 0
-Skipped: 0
+## Screenshot Evidence
 
-BUILD SUCCESS
-```
+Screenshots are saved in the `screenshots/` directory. Review them for personal information before sharing the repository.
 
-All three automated test classes completed successfully.
+## Design Approach – Page Object Model
 
-##
+- **BaseTest:** Starts and closes the browser.
+- **LoginPage:** Handles LinkedIn login interactions.
+- **SearchPage:** Searches for jobs and opens the first visible job result.
+- **LoginTest, SearchTest, InvalidLoginTest:** Exercise the login and search flows.
+- **ScreenshotUtil:** Captures screenshots during test execution.
+
+## Challenges and Limitations
+
+LinkedIn can change its page structure and may show CAPTCHA or other security checks. The tests do not bypass these checks, and a challenge may prevent a test from completing.
+
+This project is intended for educational purposes and demonstrates UI test automation using Selenium WebDriver.

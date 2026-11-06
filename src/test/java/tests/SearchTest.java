@@ -54,14 +54,14 @@ public class SearchTest extends BaseTest {
 
         // STEP 4: Inspect search results
         System.out.println(
-            "STEP 4: Inspecting search results."
+            "STEP 4: Inspecting job search results."
         );
 
         searchPage.inspectFirstSearchResults();
 
         // STEP 5: Click the first result
         System.out.println(
-            "STEP 5: Clicking the first search result."
+            "STEP 5: Clicking the first job result."
         );
 
         String expectedURL =
@@ -77,7 +77,7 @@ public class SearchTest extends BaseTest {
 
         Assert.assertTrue(
             resultOpened,
-            "The selected profile or company page did not open."
+            "The first job result page did not open."
         );
 
         System.out.println(

@@ -27,10 +27,11 @@ public class SearchPage {
             "normalize-space(text()), 'Selected,')]"
         );
 
-    // Person and company profile links
-    private By searchResults = By.xpath(
-        "//a[contains(@href, '/in/') or " +
-        "contains(@href, '/company/')]"
+    // Job cards in LinkedIn's unified search page. The first card may link to
+    // the jobs search-results route with a currentJobId, rather than /jobs/view/.
+    private By jobResults = By.cssSelector(
+        "a[href*='/jobs/view/'], " +
+        "a[href*='/jobs/search-results/'][href*='currentJobId=']"
     );
 
     public SearchPage(WebDriver driver, WebDriverWait wait) {
@@ -244,13 +245,12 @@ public class SearchPage {
         System.out.println("===============================");
     }
 
-    // Inspect first person/company search results
+    // Inspect visible job results in page order
     public void inspectFirstSearchResults() {
 
-        System.out.println("===== FIRST SEARCH RESULTS =====");
+        System.out.println("===== FIRST JOB SEARCH RESULTS =====");
 
-        List<WebElement> results =
-            driver.findElements(searchResults);
+        List<WebElement> results = driver.findElements(jobResults);
 
         int count = 0;
 
@@ -258,101 +258,52 @@ public class SearchPage {
 
             try {
 
-                if (result.isDisplayed()) {
+                if (result.isDisplayed()
+                    && !result.getText().trim().isEmpty()) {
+                    System.out.println("Result: " + (++count));
+                    System.out.println("Text: " + result.getText().trim());
+                    System.out.println("URL: " + result.getAttribute("href"));
+                    System.out.println("----------------------------");
+                }
 
-                    String text = result.getText().trim();
-                    String href = result.getAttribute("href");
-
-                    if (!text.isEmpty() && href != null) {
-
-                        System.out.println("Result: " + (++count));
-                        System.out.println("Text: " + text);
-                        System.out.println("URL: " + href);
-                        System.out.println("----------------------------");
-
-                        if (count == 10) {
-                            break;
-                        }
-                    }
+                if (count == 10) {
+                    break;
                 }
 
             } catch (StaleElementReferenceException e) {
-                // Ignore elements replaced by LinkedIn.
+                // Ignore results replaced by LinkedIn while inspecting.
             }
         }
     }
 
-    // Click the first visible person/company result
+    // Click the first visible job result
     public String clickFirstSearchResult() {
 
-        System.out.println("Waiting for search results...");
+        System.out.println("Waiting for job search results...");
 
-        wait.until(d -> {
-
-            List<WebElement> results =
-                d.findElements(searchResults);
-
-            for (WebElement result : results) {
-
+        WebElement firstResult = wait.until(d -> {
+            for (WebElement result : d.findElements(jobResults)) {
                 try {
-
                     if (result.isDisplayed()
                         && !result.getText().trim().isEmpty()
                         && result.getAttribute("href") != null) {
-
-                        return true;
+                        return result;
                     }
-
                 } catch (StaleElementReferenceException e) {
-                    // Retry with fresh elements.
+                    // Retry with fresh results during the next poll.
                 }
             }
-
-            return false;
+            return null;
         });
 
-        // Get fresh search result elements
-        List<WebElement> results =
-            driver.findElements(searchResults);
+        String expectedURL = firstResult.getAttribute("href");
+        System.out.println("Clicking first job result.");
+        System.out.println("Result text: " + firstResult.getText().trim());
+        System.out.println("Expected URL: " + expectedURL);
 
-        for (WebElement result : results) {
-
-            try {
-
-                if (result.isDisplayed()
-                    && !result.getText().trim().isEmpty()) {
-
-                    String resultText =
-                        result.getText().trim();
-
-                    String expectedURL =
-                        result.getAttribute("href");
-
-                    if (expectedURL == null) {
-                        continue;
-                    }
-
-                    System.out.println("First result selected.");
-                    System.out.println("Result text: " + resultText);
-                    System.out.println("Expected URL: " + expectedURL);
-
-                    wait.until(
-                        ExpectedConditions.elementToBeClickable(result)
-                    );
-
-                    result.click();
-
-                    return expectedURL;
-                }
-
-            } catch (StaleElementReferenceException e) {
-                // Try another fresh element.
-            }
-        }
-
-        throw new RuntimeException(
-            "Could not find a clickable person or company result."
-        );
+        wait.until(ExpectedConditions.elementToBeClickable(firstResult));
+        firstResult.click();
+        return expectedURL;
     }
 
     // Verify that the selected result page opened
@@ -360,12 +311,15 @@ public class SearchPage {
 
         System.out.println("Waiting for destination page...");
 
+        String expectedJobId = extractJobId(expectedURL);
+        requireJobId(expectedJobId, expectedURL);
+
         wait.until(d -> {
 
             String currentURL = d.getCurrentUrl();
 
-            return currentURL.contains("/in/")
-                || currentURL.contains("/company/");
+            return currentURL.contains("currentJobId=" + expectedJobId)
+                || currentURL.contains("/jobs/view/" + expectedJobId);
         });
 
         String actualURL = driver.getCurrentUrl();
@@ -373,8 +327,45 @@ public class SearchPage {
         System.out.println("Expected URL: " + expectedURL);
         System.out.println("Actual URL: " + actualURL);
 
-        return actualURL.contains("/in/")
-            || actualURL.contains("/company/");
+        return actualURL.contains("currentJobId=" + expectedJobId)
+            || actualURL.contains("/jobs/view/" + expectedJobId);
+    }
+
+    private String extractJobId(String url) {
+        String marker = "currentJobId=";
+        int idStart = url.indexOf(marker);
+
+        if (idStart >= 0) {
+            idStart += marker.length();
+            int idEnd = url.indexOf('&', idStart);
+            return idEnd >= 0
+                ? url.substring(idStart, idEnd)
+                : url.substring(idStart);
+        }
+
+        marker = "/jobs/view/";
+        int pathStart = url.indexOf(marker);
+        if (pathStart >= 0) {
+            pathStart += marker.length();
+            int pathEnd = url.indexOf('/', pathStart);
+            int queryStart = url.indexOf('?', pathStart);
+            int idEnd = pathEnd >= 0 && (queryStart < 0 || pathEnd < queryStart)
+                ? pathEnd
+                : queryStart;
+            return idEnd >= 0
+                ? url.substring(pathStart, idEnd)
+                : url.substring(pathStart);
+        }
+
+        return null;
+    }
+
+    private void requireJobId(String jobId, String url) {
+        if (jobId == null || jobId.isBlank()) {
+            throw new IllegalArgumentException(
+                "Could not identify the job in result URL: " + url
+            );
+        }
     }
 
     public String getCurrentURL() {
