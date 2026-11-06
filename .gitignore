@@ -1,8 +1,7 @@
 ﻿# Maven build output
 /target/
 
-# Test screenshots and local reports
-/screenshots/
+
 
 # Local credentials and environment files
 .env
